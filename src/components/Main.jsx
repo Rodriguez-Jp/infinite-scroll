@@ -3,19 +3,19 @@ import { useEffect, useRef, useState } from "react";
 export default function Main() {
   const [cards, setCards] = useState([]);
   const [pageNum, setPageNum] = useState(0);
-  const [isFetched, setIsFetched] = useState(false);
-  const lastElement = useRef(null);
+  const [loading, setLoading] = useState(true);
+  const lastElement = useRef();
+  const TOTAL_PAGES = 5;
 
   const fetchData = async () => {
-    console.log(pageNum);
     try {
       const data = await fetch(
         `https://dummyjson.com/products?limit=10&skip=${pageNum * 10}`
       );
       const results = await data.json();
       console.log(results.products);
-      setCards(results.products);
-      setIsFetched(true);
+      setCards([...cards, ...results.products]);
+      setLoading(false);
     } catch (error) {
       console.log(error);
     }
@@ -23,40 +23,56 @@ export default function Main() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [pageNum]);
+
+  function loadMore() {
+    setPageNum((prevNum) => prevNum + 1);
+  }
 
   useEffect(() => {
-    if (isFetched) {
-      console.log(lastElement.current);
+    let num = 0;
+    const currentElement = lastElement.current;
+
+    if (loading) return;
+
+    if (!loading) {
       const observer = new IntersectionObserver(
         (entries) => {
           const entry = entries[0];
           if (entry.isIntersecting) {
             console.log("visible!");
-            setPageNum((pgNum) => pgNum + 1);
+            loadMore();
+            num++;
+            if (num >= TOTAL_PAGES) {
+              observer.unobserve(currentElement);
+              console.log("hey");
+              return;
+            }
           }
         },
         {
           threshold: 0,
         }
       );
-      observer.observe(lastElement.current);
+      observer.observe(currentElement);
     }
-  }, [isFetched]);
+  }, [loading]);
 
   return (
     <>
-      {isFetched
-        ? cards.map((card) => (
+      {!loading ? (
+        <>
+          {cards.map((card) => (
             <div
-              className="p-6 border-2 text-2xl m-5"
+              className="p-6 border-2 text-2xl m-5 max-w-5xl mx-auto"
               key={card.id}
-              ref={lastElement}
             >
               {card.title}
             </div>
-          ))
-        : null}
+          ))}
+          <div ref={lastElement}></div>
+        </>
+      ) : null}
     </>
   );
 }
