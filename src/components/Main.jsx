@@ -13,7 +13,6 @@ export default function Main() {
         `https://dummyjson.com/products?limit=10&skip=${pageNum * 10}`
       );
       const results = await data.json();
-      console.log(results.products);
       setCards([...cards, ...results.products]);
       setLoading(false);
     } catch (error) {
